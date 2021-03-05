@@ -54,8 +54,10 @@ func (api *API) SetupRouter() {
 	order.PUT("/edit",api.OrderHandler.UpdateOrderAdmin)
 	order.GET("/count", api.OrderHandler.OrderCountItem)
 	order.GET("/detail", api.OrderHandler.OrderDetails)
+	order.GET("/detail/bill", api.OrderHandler.OrderDetailsAtBill) // Lấy thông tin detail ở mọi status của người dùng
 	order.GET("/list", api.OrderHandler.OrderList)
-	order.GET("/user/list", api.OrderHandler.OrderByUserId)
+	order.GET("/user/list", api.OrderHandler.OrderByUserId) // list order của người dùng
+	order.GET("/user/deleted-list", api.OrderHandler.OrderDeletedByUserId) // list order deleted của người dùng
 
 }
 

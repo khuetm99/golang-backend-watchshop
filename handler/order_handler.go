@@ -79,6 +79,29 @@ func (o *OrderHandler) OrderDetails(c echo.Context) error {
 	return helper.ResponseData(c, result)
 }
 
+// Lấy toàn bộ thông tin của order ở bill của người dùng
+func (o *OrderHandler) OrderDetailsAtBill(c echo.Context) error {
+	orderId := c.QueryParam("order_id")
+	if len(orderId) == 0 {
+		return helper.ResponseErr(c, http.StatusBadRequest, "Thiếu id đơn hàng")
+	}
+
+	// Lấy thông tin user_id từ token
+	userData := c.Get("user").(*jwt.Token)
+	claims := userData.Claims.(*model.JwtCustomClaims)
+
+	defer c.Request().Body.Close()
+
+	ctx, _ := context.WithTimeout(c.Request().Context(), 10*time.Second)
+	result, err := o.OrderRepo.OrderDetailCard(ctx, claims.UserId, orderId)
+	if err != nil {
+		return helper.ResponseErr(c, http.StatusInternalServerError, err.Error())
+	}
+
+	return helper.ResponseData(c, result)
+}
+
+
 func (o *OrderHandler) Update(c echo.Context) error {
 		userData := c.Get("user").(*jwt.Token)
 		claims := userData.Claims.(*model.JwtCustomClaims)
@@ -229,6 +252,22 @@ func (o *OrderHandler) OrderByUserId(c echo.Context) error {
 
 	ctx, _ := context.WithTimeout(c.Request().Context(), 10*time.Second)
 	result, err := o.OrderRepo.ListOrderByUserId(ctx, claims.UserId)
+	if err != nil {
+		return helper.ResponseErr(c, http.StatusInternalServerError, err.Error())
+	}
+
+	return helper.ResponseData(c, result)
+}
+
+func (o *OrderHandler) OrderDeletedByUserId(c echo.Context) error {
+	// Lấy thông tin user_id từ token
+	userData := c.Get("user").(*jwt.Token)
+	claims := userData.Claims.(*model.JwtCustomClaims)
+
+	defer c.Request().Body.Close()
+
+	ctx, _ := context.WithTimeout(c.Request().Context(), 10*time.Second)
+	result, err := o.OrderRepo.ListDeletedOrderByUserId(ctx, claims.UserId)
 	if err != nil {
 		return helper.ResponseErr(c, http.StatusInternalServerError, err.Error())
 	}

@@ -13,7 +13,6 @@ CREATE TABLE "products"
     "deleted_at" timestamp with time zone,
     "created_at" timestamp with time zone default NOW(),
     "updated_at" timestamp with time zone default NOW(),
-    "user_id" text NOT NULL
 );
 
 

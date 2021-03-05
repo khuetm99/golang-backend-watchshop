@@ -262,6 +262,43 @@ func (o *OrderRepoImpl) ShoppingCard(context context.Context, userId string, ord
 	return orders, nil
 }
 
+
+func (o *OrderRepoImpl) OrderDetailCard(context context.Context, userId string, orderId string) (model.Order, error) {
+	sqlShoppingCard := `
+		SELECT
+		   orders.order_id,
+		   card.product_id,
+		   card.product_name,
+		   card.product_image,
+		   card.quantity,
+		   card.price
+		FROM
+		   orders
+		INNER JOIN card 
+		ON 
+      orders.user_id = $1 AND 
+		  orders.order_id = $2 AND 
+		  orders.order_id = card.order_id;
+	`
+	orders := model.Order{}
+	cards := []model.Card{}
+
+	err := o.sql.Db.SelectContext(context, &cards, sqlShoppingCard, userId, orderId)
+	if err != nil {
+		return orders, err
+	}
+
+	var sum float64 = 0
+	for _, card := range cards {
+		sum += card.Price * float64(card.Quantity)
+	}
+
+	orders.Total = sum
+	orders.Items = cards
+
+	return orders, nil
+}
+
 func (o *OrderRepoImpl) ListOrder(context context.Context) ([]model.Order, error) {
 	sqlOrders := `
 		SELECT
@@ -325,6 +362,46 @@ func (o *OrderRepoImpl) ListOrderByUserId(context context.Context, userId string
 		ON 
 			orders.user_id = $1 AND
 		  orders.order_id = card.order_id AND orders.status = 'CONFIRM'
+		  GROUP BY 
+			orders.user_id,
+			users.full_name,
+			 orders.order_id,
+			 orders.updated_at,
+			 orders.status
+	`
+	orders := []model.Order{}
+
+	err := o.sql.Db.SelectContext(context, &orders, sqlOrders, userId)
+	if err != nil {
+		return orders, err
+	}
+
+	return orders, nil
+}
+
+func (o *OrderRepoImpl) ListDeletedOrderByUserId(context context.Context, userId string) ([]model.Order, error) {
+	sqlOrders := `
+		SELECT
+		  	orders.user_id,
+			 orders.order_id,
+			 orders.updated_at,
+			 orders.status,
+		   	users.full_name,
+		   SUM(card.total) as total
+		FROM
+		   orders
+		INNER JOIN users ON orders.user_id = users.user_id
+		INNER JOIN (
+			SELECT 
+				card.order_id,
+				(card.price * SUM(card.quantity)) as total
+			FROM card
+			GROUP BY 
+				card.order_id, card.price
+		) card
+		ON 
+			orders.user_id = $1 AND
+		  orders.order_id = card.order_id AND orders.status = 'DELETED'
 		  GROUP BY 
 			orders.user_id,
 			users.full_name,
